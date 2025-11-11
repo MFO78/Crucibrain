@@ -1,0 +1,616 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Multilingue con Hreflang -->
+    <link rel="alternate" hreflang="it" href="https://crucibrain.app/it/" />
+    <link rel="alternate" hreflang="en" href="https://crucibrain.app/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://crucibrain.app/" />
+    
+    <title data-i18n="page-title">CruciBrain - Cruciverba Visivo</title>
+    <meta name="description" data-i18n="page-description" 
+          content="Cruciverba interattivo con definizioni visualizzate come word art">
+    
+    <style>
+        /* CSS con logiche properties per RTL/LTR support */
+        .container {
+            margin-inline-start: 2rem; /* invece di margin-left */
+            padding-inline: 1rem; /* invece di padding-left/right */
+        }
+        
+        /* Stili per switcher lingua */
+        .lang-switcher {
+            position: fixed;
+            top: 1rem;
+            inset-inline-end: 1rem; /* invece di right */
+            z-index: 1000;
+        }
+        
+        .lang-button {
+            padding: 0.5rem 1rem;
+            margin-inline-start: 0.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .lang-button.active {
+            background: #0056b3;
+            font-weight: bold;
+        }
+        
+        /* Nasconde elementi tradotti non attivi */
+        [lang]:not([lang="it"]) {
+            display: none;
+        }
+        
+        html[lang="en"] [lang="it"] {
+            display: none;
+        }
+        
+        html[lang="en"] [lang="en"] {
+            display: block;
+        }
+        
+        html[lang="it"] [lang="it"] {
+            display: block;
+        }
+        
+        html[lang="it"] [lang="en"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Switcher -->
+    <nav class="lang-switcher" role="navigation" aria-label="Language selection">
+        <button type="button" class="lang-button active" 
+                data-lang="it" aria-label="Italiano">
+            🇮🇹 IT
+        </button>
+        <button type="button" class="lang-button" 
+                data-lang="en" aria-label="English">
+            🇬🇧 EN
+        </button>
+    </nav>
+
+    <header role="banner">
+        <h1 lang="it">CruciBrain - Cruciverba Visivo</h1>
+        <h1 lang="en">CruciBrain - Visual Crossword</h1>
+    </header>
+
+    <main role="main" class="container">
+        <!-- Sezione Configurazione - Italiano -->
+        <section id="configurazione" aria-labelledby="config-title-it" lang="it">
+            <h2 id="config-title-it">Configura il tuo Cruciverba</h2>
+            <form id="puzzle-form-it" class="puzzle-form">
+                <fieldset>
+                    <legend>Selezione Tema</legend>
+                    <label for="tema-it">Tema del cruciverba:</label>
+                    <input type="text" id="tema-it" name="tema" 
+                           placeholder="es. cinema, natura, tecnologia"
+                           aria-describedby="tema-help-it" required>
+                    <small id="tema-help-it">
+                        Genera automaticamente parole da questo argomento
+                    </small>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Difficoltà</legend>
+                    <label for="difficolta-it">Numero di parole:</label>
+                    <input type="range" id="difficolta-it" name="difficolta" 
+                           min="5" max="15" value="10" 
+                           aria-valuemin="5" aria-valuemax="15" aria-valuenow="10">
+                    <output for="difficolta-it" aria-live="polite">10 parole</output>
+                </fieldset>
+
+                <button type="submit" class="btn-primary">
+                    Genera Cruciverba
+                </button>
+            </form>
+        </section>
+
+        <!-- Sezione Configurazione - English -->
+        <section id="configuration" aria-labelledby="config-title-en" lang="en">
+            <h2 id="config-title-en">Configure Your Crossword</h2>
+            <form id="puzzle-form-en" class="puzzle-form">
+                <fieldset>
+                    <legend>Theme Selection</legend>
+                    <label for="tema-en">Crossword theme:</label>
+                    <input type="text" id="tema-en" name="theme" 
+                           placeholder="e.g. cinema, nature, technology"
+                           aria-describedby="tema-help-en" required>
+                    <small id="tema-help-en">
+                        Automatically generates words from this topic
+                    </small>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Difficulty</legend>
+                    <label for="difficolta-en">Number of words:</label>
+                    <input type="range" id="difficolta-en" name="difficulty" 
+                           min="5" max="15" value="10"
+                           aria-valuemin="5" aria-valuemax="15" aria-valuenow="10">
+                    <output for="difficolta-en" aria-live="polite">10 words</output>
+                </fieldset>
+
+                <button type="submit" class="btn-primary">
+                    Generate Crossword
+                </button>
+            </form>
+        </section>
+
+        <!-- Sezione Gioco -->
+        <section id="game-area" aria-labelledby="game-title" hidden>
+            <h2 id="game-title" lang="it">Risolvi il Cruciverba</h2>
+            <h2 lang="en">Solve the Crossword</h2>
+
+            <div class="game-container">
+                <article class="crossword-grid" role="application">
+                    <div id="puzzle-grid" class="grid"></div>
+                </article>
+
+                <aside class="clues-panel" aria-labelledby="clues-title">
+                    <h3 id="clues-title" lang="it">Definizione Word Art</h3>
+                    <h3 lang="en">Word Art Definition</h3>
+                    
+                    <canvas id="wordart-canvas" width="600" height="400"
+                            aria-label="Word cloud visualization">
+                    </canvas>
+                    
+                    <div class="clue-info" aria-live="polite">
+                        <p lang="it">Parola <span id="clue-num-it">1</span> di <span id="total-it">10</span></p>
+                        <p lang="en">Word <span id="clue-num-en">1</span> of <span id="total-en">10</span></p>
+                    </div>
+                </aside>
+            </div>
+
+            <div class="game-controls">
+                <button type="button" id="hint-btn" lang="it">
+                    Suggerimento
+                </button>
+                <button type="button" lang="en">
+                    Hint
+                </button>
+                <button type="button" id="verify-btn" lang="it">
+                    Verifica Soluzione
+                </button>
+                <button type="button" lang="en">
+                    Verify Solution
+                </button>
+            </div>
+        </section>
+
+        <!-- Sezione Risultati -->
+        <section id="risultati" aria-live="polite" hidden>
+            <h2 lang="it">Risultati</h2>
+            <h2 lang="en">Results</h2>
+            <dl class="stats">
+                <dt lang="it">Tempo impiegato:</dt>
+                <dt lang="en">Time taken:</dt>
+                <dd id="tempo">--:--</dd>
+                
+                <dt lang="it">Punteggio:</dt>
+                <dt lang="en">Score:</dt>
+                <dd id="score">0</dd>
+            </dl>
+        </section>
+    </main>
+
+    <footer role="contentinfo">
+        <p lang="it">
+            Dati generati tramite Free Dictionary API - 
+            Nessuna registrazione richiesta
+        </p>
+        <p lang="en">
+            Data generated via Free Dictionary API - 
+            No registration required
+        </p>
+    </footer>
+
+    <script type="module">
+        // ============================================
+        // GESTIONE MULTILINGUE
+        // ============================================
+        
+        class LanguageManager {
+            constructor() {
+                this.currentLang = this.detectLanguage();
+                this.init();
+            }
+
+            detectLanguage() {
+                // 1. Controlla URL parameter (?lang=en)
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlLang = urlParams.get('lang');
+                if (urlLang && ['it', 'en'].includes(urlLang)) {
+                    return urlLang;
+                }
+
+                // 2. Controlla localStorage
+                const savedLang = localStorage.getItem('crucibrain-lang');
+                if (savedLang && ['it', 'en'].includes(savedLang)) {
+                    return savedLang;
+                }
+
+                // 3. Controlla browser language
+                const browserLang = navigator.language.split('-')[0];
+                return ['it', 'en'].includes(browserLang) ? browserLang : 'it';
+            }
+
+            init() {
+                // Imposta lingua HTML
+                document.documentElement.lang = this.currentLang;
+                
+                // Aggiorna UI
+                this.updateLanguageButtons();
+                
+                // Event listeners per switcher
+                document.querySelectorAll('.lang-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setLanguage(e.target.dataset.lang);
+                    });
+                });
+            }
+
+            setLanguage(lang) {
+                if (!['it', 'en'].includes(lang)) return;
+                
+                this.currentLang = lang;
+                
+                // Aggiorna HTML lang attribute
+                document.documentElement.lang = lang;
+                
+                // Salva preferenza
+                localStorage.setItem('crucibrain-lang', lang);
+                
+                // Aggiorna URL senza ricaricare
+                const url = new URL(window.location);
+                url.searchParams.set('lang', lang);
+                window.history.pushState({}, '', url);
+                
+                // Aggiorna UI
+                this.updateLanguageButtons();
+                
+                // Trigger evento personalizzato
+                document.dispatchEvent(new CustomEvent('languagechange', {
+                    detail: { language: lang }
+                }));
+            }
+
+            updateLanguageButtons() {
+                document.querySelectorAll('.lang-button').forEach(btn => {
+                    if (btn.dataset.lang === this.currentLang) {
+                        btn.classList.add('active');
+                        btn.setAttribute('aria-current', 'true');
+                    } else {
+                        btn.classList.remove('active');
+                        btn.removeAttribute('aria-current');
+                    }
+                });
+            }
+
+            get language() {
+                return this.currentLang;
+            }
+        }
+
+        // Inizializza gestore lingua
+        const langManager = new LanguageManager();
+
+        // ============================================
+        // API WRAPPER - SOLO SENZA REGISTRAZIONE
+        // ============================================
+
+        class FreeDictionaryAPI {
+            constructor(lang = 'it') {
+                this.baseURL = 'https://api.freedictionaryapi.com';
+                this.lang = lang;
+            }
+
+            async getDefinition(word) {
+                try {
+                    // API supporta: en, it, es, fr, de, pt, etc.
+                    const response = await fetch(
+                        `${this.baseURL}/${this.lang}/${encodeURIComponent(word)}`
+                    );
+                    
+                    if (!response.ok) {
+                        throw new Error(`Word not found: ${word}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data || data.length === 0) {
+                        return null;
+                    }
+
+                    const entry = data[0];
+                    const sense = entry.entries?.[0]?.senses?.[0];
+                    
+                    return {
+                        word: entry.word,
+                        definition: sense?.definition || 'Definizione non disponibile',
+                        synonyms: sense?.synonyms || [],
+                        examples: sense?.examples || [],
+                        partOfSpeech: entry.entries?.[0]?.partOfSpeech || ''
+                    };
+                } catch (error) {
+                    console.error('Error fetching definition:', error);
+                    return null;
+                }
+            }
+        }
+
+        class DatamuseAPI {
+            constructor() {
+                this.baseURL = 'https://api.datamuse.com';
+            }
+
+            async getRelatedWords(word, maxResults = 20) {
+                try {
+                    // ml = means like (parole simili)
+                    // rel_trg = triggered by (parole associate)
+                    const response = await fetch(
+                        `${this.baseURL}/words?ml=${encodeURIComponent(word)}&max=${maxResults}`
+                    );
+                    
+                    if (!response.ok) {
+                        throw new Error('Datamuse API error');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    return data.map(item => ({
+                        word: item.word,
+                        score: item.score || 0
+                    }));
+                } catch (error) {
+                    console.error('Error fetching related words:', error);
+                    return [];
+                }
+            }
+
+            async getWordAssociations(word) {
+                try {
+                    // Combina diverse relazioni per word cloud ricca
+                    const [meansLike, triggers, relatedTo] = await Promise.all([
+                        fetch(`${this.baseURL}/words?ml=${word}&max=10`).then(r => r.json()),
+                        fetch(`${this.baseURL}/words?rel_trg=${word}&max=10`).then(r => r.json()),
+                        fetch(`${this.baseURL}/words?rel_jjb=${word}&max=5`).then(r => r.json())
+                    ]);
+
+                    const combined = [...meansLike, ...triggers, ...relatedTo];
+                    
+                    // Rimuovi duplicati
+                    const unique = Array.from(
+                        new Map(combined.map(item => [item.word, item])).values()
+                    );
+
+                    return unique.map(item => ({
+                        word: item.word,
+                        score: item.score || 50
+                    }));
+                } catch (error) {
+                    console.error('Error fetching associations:', error);
+                    return [];
+                }
+            }
+        }
+
+        // ============================================
+        // WORD CLOUD GENERATOR
+        // ============================================
+
+        class WordCloudGenerator {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.colors = [
+                    '#3498db', '#e74c3c', '#2ecc71', '#f39c12', 
+                    '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+                ];
+            }
+
+            draw(words) {
+                const ctx = this.ctx;
+                const { width, height } = this.canvas;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                if (!words || words.length === 0) return;
+
+                // Ordina per score
+                words.sort((a, b) => b.score - a.score);
+                
+                const maxScore = Math.max(...words.map(w => w.score));
+                const minScore = Math.min(...words.map(w => w.score));
+
+                // Posizionamento a spirale
+                const centerX = width / 2;
+                const centerY = height / 2;
+                let angle = 0;
+                let radius = 0;
+
+                words.forEach((item, index) => {
+                    // Calcola dimensione font
+                    const normalized = (item.score - minScore) / (maxScore - minScore);
+                    const fontSize = Math.max(14, normalized * 50 + 14);
+                    
+                    ctx.font = `${fontSize}px Arial, sans-serif`;
+                    
+                    // Colore
+                    ctx.fillStyle = this.colors[index % this.colors.length];
+                    
+                    // Posizionamento spirale
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    // Rotazione occasionale per effetto artistico
+                    ctx.save();
+                    ctx.translate(x, y);
+                    if (Math.random() > 0.7) {
+                        ctx.rotate((Math.random() - 0.5) * 0.3);
+                    }
+                    
+                    ctx.fillText(item.word, 0, 0);
+                    ctx.restore();
+                    
+                    // Aggiorna spirale
+                    angle += 0.5;
+                    radius += 2;
+                });
+            }
+        }
+
+        // ============================================
+        // GAME LOGIC
+        // ============================================
+
+        class CruciBrainGame {
+            constructor() {
+                this.currentLang = langManager.language;
+                this.dictionaryAPI = new FreeDictionaryAPI(this.currentLang);
+                this.datamuseAPI = new DatamuseAPI();
+                this.wordCloud = new WordCloudGenerator(
+                    document.getElementById('wordart-canvas')
+                );
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Listener per cambio lingua
+                document.addEventListener('languagechange', (e) => {
+                    this.currentLang = e.detail.language;
+                    this.dictionaryAPI = new FreeDictionaryAPI(this.currentLang);
+                });
+
+                // Form submission - Italiano
+                document.getElementById('puzzle-form-it')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const tema = document.getElementById('tema-it').value;
+                    const difficolta = parseInt(document.getElementById('difficolta-it').value);
+                    this.generatePuzzle(tema, difficolta);
+                });
+
+                // Form submission - English
+                document.getElementById('puzzle-form-en')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const theme = document.getElementById('tema-en').value;
+                    const difficulty = parseInt(document.getElementById('difficolta-en').value);
+                    this.generatePuzzle(theme, difficulty);
+                });
+
+                // Range input updates
+                ['it', 'en'].forEach(lang => {
+                    const rangeInput = document.getElementById(`difficolta-${lang}`);
+                    if (rangeInput) {
+                        rangeInput.addEventListener('input', (e) => {
+                            const output = e.target.nextElementSibling;
+                            const suffix = lang === 'it' ? 'parole' : 'words';
+                            output.textContent = `${e.target.value} ${suffix}`;
+                        });
+                    }
+                });
+            }
+
+            async generatePuzzle(theme, difficulty) {
+                console.log(`Generating puzzle: theme="${theme}", difficulty=${difficulty}, lang=${this.currentLang}`);
+
+                try {
+                    // Per inglese usa Datamuse, per italiano usa fallback o lista locale
+                    let relatedWords;
+                    
+                    if (this.currentLang === 'en') {
+                        relatedWords = await this.datamuseAPI.getRelatedWords(theme, difficulty);
+                    } else {
+                        // Fallback per italiano: usa parole base correlate
+                        relatedWords = await this.getItalianRelatedWords(theme, difficulty);
+                    }
+
+                    if (relatedWords.length === 0) {
+                        this.showError(
+                            this.currentLang === 'it' 
+                                ? 'Nessuna parola trovata per questo tema'
+                                : 'No words found for this theme'
+                        );
+                        return;
+                    }
+
+                    // Genera word cloud con le parole associate
+                    const firstWord = relatedWords[0].word;
+                    
+                    // Ottieni definizione
+                    const definition = await this.dictionaryAPI.getDefinition(firstWord);
+                    
+                    if (definition && definition.synonyms.length > 0) {
+                        // Usa sinonimi per word cloud
+                        const cloudData = definition.synonyms.map((syn, i) => ({
+                            word: syn,
+                            score: 100 - (i * 5)
+                        }));
+                        this.wordCloud.draw(cloudData);
+                    } else {
+                        // Usa parole correlate
+                        this.wordCloud.draw(relatedWords.slice(0, 15));
+                    }
+
+                    // Mostra area di gioco
+                    document.getElementById('game-area').hidden = false;
+                    
+                    console.log('Puzzle generated successfully!', {
+                        word: firstWord,
+                        definition: definition?.definition
+                    });
+
+                } catch (error) {
+                    console.error('Error generating puzzle:', error);
+                    this.showError(
+                        this.currentLang === 'it' 
+                            ? 'Errore durante la generazione'
+                            : 'Error during generation'
+                    );
+                }
+            }
+
+            async getItalianRelatedWords(theme, count) {
+                // Fallback semplice per italiano
+                // In produzione, usa lista locale da GitHub
+                const commonWords = {
+                    'natura': ['albero', 'fiore', 'sole', 'luna', 'mare', 'monte', 'fiume'],
+                    'cinema': ['film', 'attore', 'regista', 'scena', 'storia', 'premio'],
+                    'tecnologia': ['computer', 'software', 'internet', 'digitale', 'app'],
+                    'sport': ['calcio', 'tennis', 'nuoto', 'corsa', 'squadra', 'atleta']
+                };
+
+                const words = commonWords[theme.toLowerCase()] || [];
+                
+                return words.slice(0, count).map((word, i) => ({
+                    word: word,
+                    score: 100 - (i * 10)
+                }));
+            }
+
+            showError(message) {
+                alert(message);
+            }
+        }
+
+        // ============================================
+        // INIZIALIZZAZIONE
+        // ============================================
+
+        // Inizializza il gioco
+        const game = new CruciBrainGame();
+
+        console.log('CruciBrain initialized with language:', langManager.language);
+    </script>
+</body>
+</html>
